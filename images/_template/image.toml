@@ -1,0 +1,4 @@
+image = "example"
+# version = "1.2.3"
+platforms = ["linux/amd64", "linux/arm64"]
+
