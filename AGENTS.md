@@ -24,6 +24,7 @@ Optional keys:
 
 - `version` (string): if set, CI publishes this tag as well (example: `"1.2.3"` or `"v1.2.3"`).
 - `platforms` (array of strings): defaults to `["linux/amd64", "linux/arm64"]`.
+- `build_args` (table of string keys/values): passed to `docker build` as `--build-arg KEY=VALUE`.
 
 Example:
 
@@ -31,6 +32,7 @@ Example:
 image = "kube-tools"
 version = "1.30.4"
 platforms = ["linux/amd64", "linux/arm64"]
+build_args = { TOOL_VERSION = "v1.30.4" }
 ```
 
 ## Publishing Rules

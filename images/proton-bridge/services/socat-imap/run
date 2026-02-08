@@ -1,0 +1,17 @@
+#!/bin/sh
+set -eu
+
+state_dir="/tmp/proton-bridge-s6"
+mkdir -p "${state_dir}"
+date +%s > "${state_dir}/socat-imap.start"
+
+socat_debug="${SOCAT_DEBUG:-false}"
+if [ "${socat_debug}" = "true" ]; then
+  set -- -d -d
+else
+  set --
+fi
+
+exec socat "$@" \
+  TCP-LISTEN:"${CONTAINER_IMAP_PORT}",fork,reuseaddr \
+  TCP:"${PROTON_BRIDGE_HOST}":"${PROTON_BRIDGE_IMAP_PORT}"

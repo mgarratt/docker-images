@@ -1,0 +1,32 @@
+#!/bin/sh
+set -eu
+
+state_dir="/tmp/proton-bridge-s6"
+mkdir -p "${state_dir}"
+date +%s > "${state_dir}/bridge.start"
+
+agent_socket="$(gpgconf --list-dirs agent-socket)"
+wait_seconds="${BRIDGE_GPG_AGENT_WAIT_SECONDS:-30}"
+elapsed=0
+while [ ! -S "${agent_socket}" ]; do
+  if [ "${elapsed}" -ge "${wait_seconds}" ]; then
+    echo "gpg-agent socket unavailable after ${wait_seconds}s: ${agent_socket}" >&2
+    exit 1
+  fi
+  sleep 1
+  elapsed="$((elapsed + 1))"
+done
+
+bridge_mode="${BRIDGE_MODE:-noninteractive}"
+case "${bridge_mode}" in
+  noninteractive)
+    exec /usr/bin/bridge --noninteractive
+    ;;
+  cli)
+    exec /usr/bin/bridge --cli
+    ;;
+  *)
+    echo "invalid BRIDGE_MODE '${bridge_mode}' (expected: noninteractive|cli)" >&2
+    exit 1
+    ;;
+esac

@@ -66,13 +66,29 @@ jobs:
       - name: Lint Dockerfile
         run: hadolint "${{ matrix.dir }}/Dockerfile"
 
+      - id: build-args
+        shell: bash
+        run: |
+          set -euo pipefail
+          image_source="${{ github.server_url }}/${{ github.repository }}"
+          {
+            echo "value<<EOF"
+            jq -r '.[]' <<< '${{ toJSON(matrix.build_args) }}'
+            echo "ENV_IMAGE_SOURCE=${image_source}"
+            echo "ENV_IMAGE_REVISION=${{ github.sha }}"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Build (no push)
         uses: docker/build-push-action@v6
         with:
           context: ${{ matrix.dir }}
           file: ${{ matrix.dir }}/Dockerfile
           platforms: ${{ join(matrix.platforms, ',') }}
+          build-args: ${{ steps.build-args.outputs.value }}
           push: false
+          provenance: false
+          sbom: false
           tags: local/${{ matrix.image_name }}:pr-${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

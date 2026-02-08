@@ -1,0 +1,9 @@
+#!/bin/sh
+set -eu
+
+gpgconf --kill gpg-agent || true
+gpgconf --kill keyboxd || true
+rm -f "${HOME}"/.gnupg/S.* 2>/dev/null || true
+rm -f "${HOME}"/.gnupg/*/*.lock 2>/dev/null || true
+
+exec /app/services/.s6-finish-policy.sh "gpg-agent" "true" "${1:-0}" "${2:-0}"

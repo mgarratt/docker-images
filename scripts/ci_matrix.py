@@ -24,6 +24,28 @@ def _run(cmd: list[str]) -> str:
     return p.stdout
 
 
+def _git_commit_exists(ref: str) -> bool:
+    p = subprocess.run(
+        ["git", "rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}"],
+        cwd=ROOT,
+        text=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    return p.returncode == 0
+
+
+def _git_has_merge_base(base: str, head: str) -> bool:
+    p = subprocess.run(
+        ["git", "merge-base", base, head],
+        cwd=ROOT,
+        text=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    return p.returncode == 0
+
+
 def _git_diff_names(base: str, head: str) -> list[str]:
     out = _run(["git", "diff", "--name-only", f"{base}..{head}"])
     return [line.strip() for line in out.splitlines() if line.strip()]
@@ -47,7 +69,7 @@ def _load_image_toml(path: Path) -> dict:
     except Exception as e:
         raise Fatal(f"failed parsing {path}: {e}") from e
 
-    allowed = {"image", "version", "platforms"}
+    allowed = {"image", "version", "platforms", "build_args"}
     unknown = set(data.keys()) - allowed
     if unknown:
         raise Fatal(f"unknown keys in {path}: {', '.join(sorted(unknown))}")
@@ -58,6 +80,11 @@ def _load_image_toml(path: Path) -> dict:
         raise Fatal(f"{path}: version must be a string")
     if "image" in data and not isinstance(data["image"], str):
         raise Fatal(f"{path}: image must be a string")
+    if "build_args" in data:
+        if not isinstance(data["build_args"], dict):
+            raise Fatal(f"{path}: build_args must be a table of string keys and values")
+        if not all(isinstance(k, str) and isinstance(v, str) for k, v in data["build_args"].items()):
+            raise Fatal(f"{path}: build_args must be a table of string keys and values")
 
     return data
 
@@ -79,6 +106,7 @@ def discover_images() -> list[dict]:
         image_name = data.get("image") or p.name
         version = data.get("version")
         platforms = data.get("platforms") or DEFAULT_PLATFORMS
+        build_args = [f"{k}={v}" for k, v in data.get("build_args", {}).items()]
 
         if not all(isinstance(x, str) for x in platforms):
             raise Fatal(f"{meta}: platforms must be an array of strings")
@@ -89,6 +117,7 @@ def discover_images() -> list[dict]:
                 "image_name": image_name,
                 "version": version,
                 "platforms": platforms,
+                "build_args": build_args,
             }
         )
     return images
@@ -99,6 +128,13 @@ def changed_images(base: str | None, head: str) -> list[dict]:
     by_dir = {img["dir"]: img for img in all_images}
 
     if not base or _is_all_zeros_sha(base):
+        return all_images
+
+    # Force-pushes and shallow history can make GitHub-provided refs unusable
+    # in CI. Prefer rebuilding all images over failing the workflow.
+    if not _git_commit_exists(base) or not _git_commit_exists(head):
+        return all_images
+    if not _git_has_merge_base(base, head):
         return all_images
 
     changed_files = _git_diff_names(base, head)
@@ -163,4 +199,3 @@ if __name__ == "__main__":
     except Fatal as e:
         sys.stderr.write(f"error: {e}\n")
         raise SystemExit(2)
-

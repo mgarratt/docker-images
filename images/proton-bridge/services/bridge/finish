@@ -1,0 +1,12 @@
+#!/bin/sh
+set -eu
+
+if [ "${1:-0}" -eq 0 ] && [ "${2:-0}" -eq 0 ]; then
+  if [ "${BRIDGE_EXIT_ZERO_STOPS_CONTAINER:-true}" = "true" ]; then
+    echo "[bridge] clean exit requested, stopping container"
+    exec s6-svscanctl -t /app/services
+  fi
+  echo "[bridge] clean exit; restart is enabled"
+fi
+
+exec /app/services/.s6-finish-policy.sh "bridge" "true" "${1:-0}" "${2:-0}"

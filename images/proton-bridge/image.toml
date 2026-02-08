@@ -1,0 +1,4 @@
+image = "proton-bridge"
+version = "3.21.2"
+platforms = ["linux/amd64", "linux/arm64"]
+build_args = { ENV_PROTONMAIL_BRIDGE_VERSION = "v3.22.0", ENV_PROTONMAIL_BRIDGE_COMMIT = "87bba395d0f93301ac318d9b5cffde3312bbe13e" }

@@ -1,0 +1,65 @@
+#!/bin/sh
+set -eu
+
+state_dir="/tmp/proton-bridge-s6"
+mkdir -p "${state_dir}"
+date +%s > "${state_dir}/gpg-agent.start"
+
+stop_requested=0
+
+request_stop() {
+  stop_requested=1
+}
+
+trap 'request_stop' INT TERM
+
+cleanup_gnupg_state() {
+  # Alpine keyboxd/gpg-agent stale socket and lock cleanup.
+  rm -f "${HOME}"/.gnupg/S.* 2>/dev/null || true
+  rm -f "${HOME}"/.gnupg/*/*.lock 2>/dev/null || true
+}
+
+max_failures="${GPG_AGENT_LAUNCH_MAX_FAILURES:-10}"
+consecutive_failures=0
+
+while [ "${stop_requested}" -eq 0 ]; do
+  cleanup_gnupg_state
+  if ! gpgconf --launch gpg-agent; then
+    consecutive_failures="$((consecutive_failures + 1))"
+    echo "gpg-agent launch failed (${consecutive_failures}/${max_failures})" >&2
+    if [ "${consecutive_failures}" -ge "${max_failures}" ]; then
+      echo "gpg-agent failed to launch after ${max_failures} attempts" >&2
+      exit 1
+    fi
+    sleep 2
+    continue
+  fi
+
+  agent_pid="$(gpg-connect-agent 'getinfo pid' /bye 2>/dev/null | awk '/^D /{print $2; exit}')"
+  if [ -z "${agent_pid}" ]; then
+    consecutive_failures="$((consecutive_failures + 1))"
+    echo "gpg-agent pid unavailable (${consecutive_failures}/${max_failures}), retrying" >&2
+    if [ "${consecutive_failures}" -ge "${max_failures}" ]; then
+      echo "gpg-agent pid unavailable after ${max_failures} attempts" >&2
+      exit 1
+    fi
+    sleep 2
+    continue
+  fi
+  consecutive_failures=0
+
+  while kill -0 "${agent_pid}" 2>/dev/null; do
+    if [ "${stop_requested}" -ne 0 ]; then
+      break
+    fi
+    sleep 2
+  done
+
+  if [ "${stop_requested}" -eq 0 ]; then
+    echo "gpg-agent exited (pid=${agent_pid}), relaunching" >&2
+    sleep 1
+  fi
+done
+
+gpgconf --kill gpg-agent || true
+exit 0

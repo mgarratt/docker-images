@@ -1,0 +1,4 @@
+#!/bin/sh
+set -eu
+
+exec /app/services/.s6-finish-policy.sh "socat-imap" "true" "${1:-0}" "${2:-0}"

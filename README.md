@@ -20,13 +20,14 @@ On pushes to `main`, CI publishes for each changed image:
 - `scripts/` contains local/CI helpers
 
 See `AGENTS.md` for the full standards.
+See `THIRD_PARTY_LICENSES.md` for third-party license notices.
 
 ## Local Build
 
 Build the image for your host architecture and load it into your local Docker daemon:
 
 ```bash
-./scripts/build-one.sh <image>
+./scripts/build-one.py <image>
 ```
 
 ## Adding An Image

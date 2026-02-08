@@ -1,0 +1,21 @@
+Proton Bridge container image licensing notice
+=============================================
+
+This image contains binaries built from Proton Bridge source code:
+  https://github.com/ProtonMail/proton-bridge
+License: GNU General Public License v3.0 (GPL-3.0)
+
+This image's wrapper/bootstrap implementation was originally started from
+ideas and structure in:
+  https://github.com/shenxn/protonmail-bridge-docker
+License: GNU General Public License v3.0 (GPL-3.0)
+
+Additional implementation ideas and containerization patterns were also
+referenced from:
+  https://github.com/VideoCurio/ProtonMailBridgeDocker
+License: GNU General Public License v3.0 (GPL-3.0)
+
+The implementation in this repository has been substantially modified.
+To avoid ambiguity, `images/proton-bridge` is distributed as GPL-3.0-compatible
+material, with corresponding source available in this repository and in the
+upstream repositories referenced above.
