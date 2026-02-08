@@ -21,3 +21,17 @@ On pushes to `main`, CI publishes for each changed image:
 
 See `AGENTS.md` for the full standards.
 
+## Local Build
+
+Build the image for your host architecture and load it into your local Docker daemon:
+
+```bash
+./scripts/build-one.sh <image>
+```
+
+## Adding An Image
+
+1. Copy `images/_template/` to `images/<image>/`.
+2. Add `images/<image>/Dockerfile`.
+3. Edit `images/<image>/image.toml`:
+   - Set `version` when you want a stable tag like `:<version>` in addition to `:latest`.
