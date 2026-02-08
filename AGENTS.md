@@ -51,10 +51,15 @@ Notes:
 - Use `mise` to install tool dependencies in CI (via `jdx/mise-action`).
 - Builds must be multi-arch with Buildx (at least `linux/amd64` and `linux/arm64`).
 - PRs should validate Dockerfiles (lint + build) but must not push to GHCR.
+- CI must run repo linting via `./scripts/lint.sh` (ShellCheck for `scripts/*.sh`, Hadolint for `images/*/Dockerfile`).
+
+## Linting
+
+- Run locally: `./scripts/lint.sh`
+- CI must run this script on PRs and on `main` publishes so linting stays consistent across sessions.
 
 ## Adding A New Image
 
 1. Create `images/<image>/Dockerfile` and `.dockerignore`.
 2. Add `images/<image>/image.toml` (set `version` if you want a stable tag).
 3. Add a short `images/<image>/README.md`.
-
