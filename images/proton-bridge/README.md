@@ -36,6 +36,37 @@ Optional runtime tuning:
 - `BRIDGE_MODE` (`noninteractive` or `cli`, default `noninteractive`)
 - `SOCAT_DEBUG` (`true` enables verbose socat logs, default `false`)
 
+## Login
+
+Use Bridge CLI mode for first-time account login.
+
+This image uses an `s6` entrypoint, so `docker run ... --cli` does not pass `--cli` to Bridge.
+Set `BRIDGE_MODE=cli` instead.
+
+Example:
+
+```bash
+docker run --rm -it \
+  -e BRIDGE_MODE=cli \
+  -e PROTON_BRIDGE_SMTP_PORT=1025 \
+  -e PROTON_BRIDGE_IMAP_PORT=1143 \
+  -e PROTON_BRIDGE_HOST=127.0.0.1 \
+  -e CONTAINER_SMTP_PORT=1026 \
+  -e CONTAINER_IMAP_PORT=1144 \
+  -v proton-bridge-home:/home/bridge \
+  ghcr.io/mgarratt/docker-images/proton-bridge:latest
+```
+
+Then in the Bridge CLI prompt:
+
+1. Run `login`
+2. Complete Proton login (including MFA, if enabled)
+3. Run `info` to see account status and the generated Bridge mailbox credentials
+
+Use the generated Bridge credentials in your mail client, not your Proton account password.
+
+After login is complete, restart the container with `BRIDGE_MODE=noninteractive` for normal long-running use.
+
 ## Behavior Notes
 
 - `bridge` clean exit (`code=0`) stops container by default. Set `BRIDGE_EXIT_ZERO_STOPS_CONTAINER=false` to allow restart instead.
