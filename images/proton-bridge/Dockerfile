@@ -55,11 +55,13 @@ ARG ENV_BRIDGE_HOST=127.0.0.1
 # Change ENV_CONTAINER_SMTP_PORT only if you have a docker port conflict on host network namespace.
 ARG ENV_CONTAINER_SMTP_PORT=1026
 ARG ENV_CONTAINER_IMAP_PORT=1144
+ARG ENV_CONTAINER_METRICS_PORT=9154
 ENV PROTON_BRIDGE_SMTP_PORT=$ENV_BRIDGE_SMTP_PORT \
     PROTON_BRIDGE_IMAP_PORT=$ENV_BRIDGE_IMAP_PORT \
     PROTON_BRIDGE_HOST=$ENV_BRIDGE_HOST \
     CONTAINER_SMTP_PORT=$ENV_CONTAINER_SMTP_PORT \
     CONTAINER_IMAP_PORT=$ENV_CONTAINER_IMAP_PORT \
+    CONTAINER_METRICS_PORT=$ENV_CONTAINER_METRICS_PORT \
     ENV_TARGET_PLATFORM=$TARGETPLATFORM
 
 # Install dependencies
@@ -93,6 +95,8 @@ COPY --from=build /build/proton-bridge/bridge /build/proton-bridge/proton-bridge
 WORKDIR /app/
 COPY --chmod=0755 entrypoint.sh /app/entrypoint.sh
 COPY --chmod=0755 healthcheck.sh /app/healthcheck.sh
+COPY --chmod=0755 metrics/metrics.cgi /app/metrics/metrics.cgi
+COPY --chmod=0755 metrics/serve-http.sh /app/metrics/serve-http.sh
 COPY GPGparams.txt /app/GPGparams.txt
 COPY LICENSE /app/licenses/LICENSE
 COPY NOTICE /app/licenses/NOTICE
@@ -105,6 +109,8 @@ COPY --chmod=0755 services/socat-smtp/run /app/services/socat-smtp/run
 COPY --chmod=0755 services/socat-smtp/finish /app/services/socat-smtp/finish
 COPY --chmod=0755 services/socat-imap/run /app/services/socat-imap/run
 COPY --chmod=0755 services/socat-imap/finish /app/services/socat-imap/finish
+COPY --chmod=0755 services/metrics/run /app/services/metrics/run
+COPY --chmod=0755 services/metrics/finish /app/services/metrics/finish
 COPY --from=build /build/BRIDGE_VERSION /app/VERSION
 RUN chown -R bridge:bridge /app
 

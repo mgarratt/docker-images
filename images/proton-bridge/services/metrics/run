@@ -1,0 +1,10 @@
+#!/bin/sh
+set -eu
+
+state_dir="/tmp/proton-bridge-s6"
+mkdir -p "${state_dir}"
+date +%s > "${state_dir}/metrics.start"
+
+exec socat \
+  TCP-LISTEN:"${CONTAINER_METRICS_PORT}",fork,reuseaddr \
+  SYSTEM:"/app/metrics/serve-http.sh"
