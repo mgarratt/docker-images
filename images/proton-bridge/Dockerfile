@@ -80,8 +80,8 @@ RUN set -eux; \
       socat
 
 RUN set -eux; \
-    addgroup -S bridge; \
-    adduser -S -G bridge -h /home/bridge bridge; \
+    addgroup -g 1000 -S bridge; \
+    adduser -u 1000 -S -G bridge -h /home/bridge bridge; \
     mkdir -p /home/bridge /app; \
     chown -R bridge:bridge /home/bridge /app
 
