@@ -85,14 +85,14 @@ The container `HEALTHCHECK` script validates:
 - `gpg-agent` control socket responsiveness (`gpg-connect-agent /bye`)
 - listening state for SMTP/IMAP container ports
 - lightweight SMTP and IMAP banner-level handshake probes on local forwarded ports
-- metrics endpoint HTTP readiness (`/cgi-bin/metrics`)
+- metrics endpoint HTTP readiness (`/metrics`)
 
 ## Metrics
 
 The image now exposes Prometheus-formatted metrics from inside the container.
 
 - listen port: `${CONTAINER_METRICS_PORT}` (default `9154`)
-- scrape path: `/cgi-bin/metrics`
+- scrape path: `/metrics` (`/cgi-bin/metrics` also supported)
 
 Current metrics include:
 

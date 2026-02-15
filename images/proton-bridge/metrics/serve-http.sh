@@ -14,7 +14,7 @@ while IFS= read -r header; do
   esac
 done
 
-if [ "${method}" = "GET" ] && [ "${path}" = "/cgi-bin/metrics" ]; then
+if [ "${method}" = "GET" ] && { [ "${path}" = "/metrics" ] || [ "${path}" = "/cgi-bin/metrics" ]; }; then
   printf 'HTTP/1.1 200 OK\r\n'
   printf 'Content-Type: text/plain; version=0.0.4\r\n'
   printf 'Connection: close\r\n'
