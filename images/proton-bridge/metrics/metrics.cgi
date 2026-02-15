@@ -87,8 +87,6 @@ pass_entry_count() {
 }
 
 print_metrics() {
-  printf 'Content-Type: text/plain; version=0.0.4\r\n\r\n'
-
   printf '# HELP proton_bridge_service_up Whether an s6 service is currently up (1) or down (0).\n'
   printf '# TYPE proton_bridge_service_up gauge\n'
   service_up bridge

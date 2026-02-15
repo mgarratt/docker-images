@@ -5,8 +5,6 @@ state_dir="/tmp/proton-bridge-s6"
 mkdir -p "${state_dir}"
 date +%s > "${state_dir}/metrics.start"
 
-web_root="/tmp/proton-bridge-metrics-www"
-mkdir -p "${web_root}/cgi-bin"
-ln -sf /app/metrics/metrics.cgi "${web_root}/cgi-bin/metrics"
-
-exec busybox httpd -f -p "${CONTAINER_METRICS_PORT}" -h "${web_root}"
+exec socat \
+  TCP-LISTEN:"${CONTAINER_METRICS_PORT}",fork,reuseaddr \
+  SYSTEM:"/app/metrics/serve-http.sh"

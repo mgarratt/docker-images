@@ -10,7 +10,7 @@ The container runs these long-lived services under `s6`:
 - `gpg-agent` (launched and monitored via `gpgconf`)
 - SMTP forwarder (`socat` on `${CONTAINER_SMTP_PORT}` -> `${PROTON_BRIDGE_HOST}:${PROTON_BRIDGE_SMTP_PORT}`)
 - IMAP forwarder (`socat` on `${CONTAINER_IMAP_PORT}` -> `${PROTON_BRIDGE_HOST}:${PROTON_BRIDGE_IMAP_PORT}`)
-- metrics endpoint (`busybox httpd` on `${CONTAINER_METRICS_PORT}` serving `/cgi-bin/metrics`)
+- metrics endpoint (`socat` listener on `${CONTAINER_METRICS_PORT}` serving `/cgi-bin/metrics`)
 
 Bootstrap-only initialization in `entrypoint.sh`:
 

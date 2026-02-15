@@ -96,6 +96,7 @@ WORKDIR /app/
 COPY --chmod=0755 entrypoint.sh /app/entrypoint.sh
 COPY --chmod=0755 healthcheck.sh /app/healthcheck.sh
 COPY --chmod=0755 metrics/metrics.cgi /app/metrics/metrics.cgi
+COPY --chmod=0755 metrics/serve-http.sh /app/metrics/serve-http.sh
 COPY GPGparams.txt /app/GPGparams.txt
 COPY LICENSE /app/licenses/LICENSE
 COPY NOTICE /app/licenses/NOTICE
