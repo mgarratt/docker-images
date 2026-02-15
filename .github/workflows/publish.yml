@@ -75,6 +75,18 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - id: latest-guard
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin main
+          main_head="$(git rev-parse origin/main)"
+          if [[ "${GITHUB_SHA}" == "${main_head}" ]]; then
+            echo "publish_latest=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish_latest=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - id: meta
         shell: bash
         run: |
@@ -82,7 +94,10 @@ jobs:
           base="ghcr.io/${{ github.repository }}/${{ matrix.image_name }}"
           short="${GITHUB_SHA::7}"
 
-          tags=("$base:latest" "$base:sha-$short")
+          tags=("$base:sha-$short")
+          if [[ "${{ steps.latest-guard.outputs.publish_latest }}" == "true" ]]; then
+            tags=("$base:latest" "${tags[@]}")
+          fi
           if [[ -n "${{ matrix.version }}" ]]; then
             tags+=("$base:${{ matrix.version }}")
           fi
