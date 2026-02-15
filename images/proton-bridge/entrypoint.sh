@@ -15,7 +15,8 @@ for required_var in \
   PROTON_BRIDGE_IMAP_PORT \
   PROTON_BRIDGE_HOST \
   CONTAINER_SMTP_PORT \
-  CONTAINER_IMAP_PORT
+  CONTAINER_IMAP_PORT \
+  CONTAINER_METRICS_PORT
 do
   require_env "${required_var}"
 done

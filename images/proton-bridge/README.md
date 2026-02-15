@@ -10,6 +10,7 @@ The container runs these long-lived services under `s6`:
 - `gpg-agent` (launched and monitored via `gpgconf`)
 - SMTP forwarder (`socat` on `${CONTAINER_SMTP_PORT}` -> `${PROTON_BRIDGE_HOST}:${PROTON_BRIDGE_SMTP_PORT}`)
 - IMAP forwarder (`socat` on `${CONTAINER_IMAP_PORT}` -> `${PROTON_BRIDGE_HOST}:${PROTON_BRIDGE_IMAP_PORT}`)
+- metrics endpoint (`busybox httpd` on `${CONTAINER_METRICS_PORT}` serving `/cgi-bin/metrics`)
 
 Bootstrap-only initialization in `entrypoint.sh`:
 
@@ -25,6 +26,7 @@ Required:
 - `PROTON_BRIDGE_HOST`
 - `CONTAINER_SMTP_PORT`
 - `CONTAINER_IMAP_PORT`
+- `CONTAINER_METRICS_PORT`
 
 Optional runtime tuning:
 
@@ -83,6 +85,30 @@ The container `HEALTHCHECK` script validates:
 - `gpg-agent` control socket responsiveness (`gpg-connect-agent /bye`)
 - listening state for SMTP/IMAP container ports
 - lightweight SMTP and IMAP banner-level handshake probes on local forwarded ports
+- metrics endpoint HTTP readiness (`/cgi-bin/metrics`)
+
+## Metrics
+
+The image now exposes Prometheus-formatted metrics from inside the container.
+
+- listen port: `${CONTAINER_METRICS_PORT}` (default `9154`)
+- scrape path: `/cgi-bin/metrics`
+
+Current metrics include:
+
+- `proton_bridge_service_up{service=...}`
+- `proton_bridge_service_restart_count{service=...}`
+- `proton_bridge_service_start_time_seconds{service=...}`
+- `proton_bridge_gpg_agent_up`
+- `proton_bridge_port_listening{listener=...,port=...}`
+- `proton_bridge_smtp_banner_probe_up`
+- `proton_bridge_imap_banner_probe_up`
+- `proton_bridge_pass_entry_count`
+
+Limitations:
+
+- Proton Bridge does not currently expose a stable machine API for per-account sync status in this image mode.
+- You can scrape transport/process readiness today; account-level sync state likely requires either upstream Bridge support or a dedicated log/CLI parser sidecar.
 
 ## Build Supply Chain
 
