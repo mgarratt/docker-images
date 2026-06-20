@@ -20,6 +20,15 @@ do
   require_env "${required_var}"
 done
 
+# A previously killed container can leave stale gpg lock files and agent sockets
+# in the persisted GNUPGHOME. They make `gpg --list-keys` block until it times
+# out, which we'd misread below as a missing key. Nothing gpg-related is running
+# yet at this point, so clearing them is safe.
+gnupg_home="${GNUPGHOME:-${HOME}/.gnupg}"
+if [ -d "${gnupg_home}" ]; then
+  find "${gnupg_home}" \( -name '*.lock' -o -type s \) -delete 2>/dev/null || true
+fi
+
 store_exists=false
 if [ -d "${HOME}/.password-store/" ]; then
   store_exists=true
