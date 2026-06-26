@@ -6,10 +6,11 @@ Headless Proton Mail Bridge image with `s6`-supervised services.
 
 The container runs these long-lived services under `s6`:
 
-- `bridge` (`/usr/bin/bridge --noninteractive` by default)
+- `bridge` (`/usr/bin/bridge --grpc` by default; serves mail and the gRPC machine API)
 - `gpg-agent` (launched and monitored via `gpgconf`)
 - SMTP forwarder (`socat` on `${CONTAINER_SMTP_PORT}` -> `${PROTON_BRIDGE_HOST}:${PROTON_BRIDGE_SMTP_PORT}`)
 - IMAP forwarder (`socat` on `${CONTAINER_IMAP_PORT}` -> `${PROTON_BRIDGE_HOST}:${PROTON_BRIDGE_IMAP_PORT}`)
+- `exporter` (Prometheus metrics on `${CONTAINER_METRICS_PORT}`, scraping the bridge gRPC API)
 
 Bootstrap-only initialization in `entrypoint.sh`:
 
@@ -25,6 +26,7 @@ Required:
 - `PROTON_BRIDGE_HOST`
 - `CONTAINER_SMTP_PORT`
 - `CONTAINER_IMAP_PORT`
+- `CONTAINER_METRICS_PORT`
 
 Optional runtime tuning:
 
@@ -33,8 +35,19 @@ Optional runtime tuning:
 - `BRIDGE_EXIT_ZERO_STOPS_CONTAINER` (default `true`)
 - `BRIDGE_GPG_AGENT_WAIT_SECONDS` (default `30`)
 - `GPG_AGENT_LAUNCH_MAX_FAILURES` (default `10`)
-- `BRIDGE_MODE` (`noninteractive` or `cli`, default `noninteractive`)
+- `BRIDGE_MODE` (`grpc`, `noninteractive`, or `cli`, default `grpc`)
 - `SOCAT_DEBUG` (`true` enables verbose socat logs, default `false`)
+
+## Metrics
+
+The `exporter` service exposes Prometheus metrics on `${CONTAINER_METRICS_PORT}`
+(default `9154`, path `/metrics`), including per-account login state and
+dropped-auth counters scraped from the bridge gRPC API. This requires the
+default `BRIDGE_MODE=grpc`; under `noninteractive`/`cli` the gRPC API is absent
+and the exporter reports `proton_bridge_up 0`.
+
+See [`exporter/README.md`](exporter/README.md) for the full metric list and the
+stub-regeneration step required on each upstream version bump.
 
 ## Login
 
