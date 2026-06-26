@@ -1,0 +1,8 @@
+#!/bin/sh
+set -eu
+
+state_dir="/tmp/proton-bridge-s6"
+mkdir -p "${state_dir}"
+date +%s > "${state_dir}/exporter.start"
+
+exec /usr/bin/proton-bridge-exporter

@@ -39,6 +39,16 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     set -eux; \
     make build-nogui vault-editor
 
+# Build the Prometheus exporter that scrapes the bridge gRPC frontend.
+FROM golang:alpine3.24 AS exporter
+WORKDIR /exporter
+COPY exporter/go.mod exporter/go.sum ./
+RUN --mount=type=cache,target=/go/pkg/mod go mod download
+COPY exporter/ ./
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 go build -o /proton-bridge-exporter .
+
 # Working stage image
 FROM alpine:3.24
 
@@ -55,11 +65,13 @@ ARG ENV_BRIDGE_HOST=127.0.0.1
 # Change ENV_CONTAINER_SMTP_PORT only if you have a docker port conflict on host network namespace.
 ARG ENV_CONTAINER_SMTP_PORT=1026
 ARG ENV_CONTAINER_IMAP_PORT=1144
+ARG ENV_CONTAINER_METRICS_PORT=9154
 ENV PROTON_BRIDGE_SMTP_PORT=$ENV_BRIDGE_SMTP_PORT \
     PROTON_BRIDGE_IMAP_PORT=$ENV_BRIDGE_IMAP_PORT \
     PROTON_BRIDGE_HOST=$ENV_BRIDGE_HOST \
     CONTAINER_SMTP_PORT=$ENV_CONTAINER_SMTP_PORT \
     CONTAINER_IMAP_PORT=$ENV_CONTAINER_IMAP_PORT \
+    CONTAINER_METRICS_PORT=$ENV_CONTAINER_METRICS_PORT \
     ENV_TARGET_PLATFORM=$TARGETPLATFORM
 
 # Install dependencies
@@ -88,6 +100,7 @@ RUN set -eux; \
 # Copy executables made during previous stage
 WORKDIR /usr/bin/
 COPY --from=build /build/proton-bridge/bridge /build/proton-bridge/proton-bridge /build/proton-bridge/vault-editor /usr/bin/
+COPY --from=exporter /proton-bridge-exporter /usr/bin/proton-bridge-exporter
 
 # Install needed scripts and files
 WORKDIR /app/
@@ -105,6 +118,8 @@ COPY --chmod=0755 services/socat-smtp/run /app/services/socat-smtp/run
 COPY --chmod=0755 services/socat-smtp/finish /app/services/socat-smtp/finish
 COPY --chmod=0755 services/socat-imap/run /app/services/socat-imap/run
 COPY --chmod=0755 services/socat-imap/finish /app/services/socat-imap/finish
+COPY --chmod=0755 services/exporter/run /app/services/exporter/run
+COPY --chmod=0755 services/exporter/finish /app/services/exporter/finish
 COPY --from=build /build/BRIDGE_VERSION /app/VERSION
 RUN chown -R bridge:bridge /app
 

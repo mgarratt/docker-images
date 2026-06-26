@@ -17,8 +17,14 @@ while [ ! -S "${agent_socket}" ]; do
   elapsed="$((elapsed + 1))"
 done
 
-bridge_mode="${BRIDGE_MODE:-noninteractive}"
+bridge_mode="${BRIDGE_MODE:-grpc}"
 case "${bridge_mode}" in
+  grpc)
+    # gRPC frontend serves the same mail bridge as noninteractive, plus the
+    # machine API the metrics exporter scrapes. --parent-pid defaults to -1,
+    # so the GUI-watchdog that would otherwise shut it down stays disabled.
+    exec /usr/bin/bridge --grpc
+    ;;
   noninteractive)
     exec /usr/bin/bridge --noninteractive
     ;;
@@ -26,7 +32,7 @@ case "${bridge_mode}" in
     exec /usr/bin/bridge --cli
     ;;
   *)
-    echo "invalid BRIDGE_MODE '${bridge_mode}' (expected: noninteractive|cli)" >&2
+    echo "invalid BRIDGE_MODE '${bridge_mode}' (expected: grpc|noninteractive|cli)" >&2
     exit 1
     ;;
 esac
