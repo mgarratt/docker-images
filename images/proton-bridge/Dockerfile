@@ -1,6 +1,6 @@
-# syntax=docker/dockerfile:1.7
+# syntax=docker/dockerfile:1.25
 
-FROM --platform=$TARGETPLATFORM golang:alpine3.23 AS build
+FROM golang:alpine3.24 AS build
 
 ARG ENV_PROTONMAIL_BRIDGE_VERSION
 ARG ENV_PROTONMAIL_BRIDGE_COMMIT
@@ -40,7 +40,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     make build-nogui vault-editor
 
 # Working stage image
-FROM --platform=$TARGETPLATFORM alpine:3.23
+FROM alpine:3.24
 
 # Define arguments and env variables
 ARG TARGETPLATFORM
