@@ -21,6 +21,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -34,6 +35,10 @@ import (
 )
 
 const serverTokenMetadataKey = "server-token"
+
+// internetEventSeen flips true once bridge emits its first InternetStatusEvent,
+// after which the event stream (not the account-state seed) drives the gauge.
+var internetEventSeen atomic.Bool
 
 type serverConfig struct {
 	Port           int    `json:"port"`
@@ -145,12 +150,14 @@ func poll(ctx context.Context, client pb.BridgeClient) error {
 
 	users := resp.GetUsers()
 	accountsTotal.Set(float64(len(users)))
+	anyConnected := false
 	for _, u := range users {
 		name := u.GetUsername()
 		state := u.GetState()
 		connected := 0.0
 		if state == pb.UserState_CONNECTED {
 			connected = 1
+			anyConnected = true
 		}
 		accountConnected.WithLabelValues(name).Set(connected)
 		for _, s := range []pb.UserState{pb.UserState_SIGNED_OUT, pb.UserState_LOCKED, pb.UserState_CONNECTED} {
@@ -162,6 +169,18 @@ func poll(ctx context.Context, client pb.BridgeClient) error {
 		}
 		accountUsedBytes.WithLabelValues(name).Set(float64(u.GetUsedBytes()))
 		accountTotalBytes.WithLabelValues(name).Set(float64(u.GetTotalBytes()))
+	}
+
+	// Bridge only emits InternetStatusEvent on change, so until the first such
+	// event arrives we seed internet_connected from account state (a connected
+	// account implies working connectivity). Once a real event is seen, the
+	// event stream stays authoritative and we stop seeding.
+	if !internetEventSeen.Load() {
+		v := 0.0
+		if anyConnected {
+			v = 1
+		}
+		internetConnected.Set(v)
 	}
 
 	if v, err := client.Version(ctx, &emptypb.Empty{}); err == nil {
@@ -191,6 +210,7 @@ func streamEvents(ctx context.Context, client pb.BridgeClient) error {
 					v = 1
 				}
 				internetConnected.Set(v)
+				internetEventSeen.Store(true)
 			}
 		}
 		if ue := ev.GetUser(); ue != nil {
