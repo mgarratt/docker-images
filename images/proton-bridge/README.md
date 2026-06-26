@@ -78,12 +78,12 @@ Then in the Bridge CLI prompt:
 
 Use the generated Bridge credentials in your mail client, not your Proton account password.
 
-After login is complete, restart the container with `BRIDGE_MODE=noninteractive` for normal long-running use.
+After login is complete, restart the container in the default `grpc` mode for normal long-running use (or `BRIDGE_MODE=noninteractive` if you don't need the metrics exporter).
 
 ## Behavior Notes
 
 - `bridge` clean exit (`code=0`) stops container by default. Set `BRIDGE_EXIT_ZERO_STOPS_CONTAINER=false` to allow restart instead.
-- `bridge` runs in non-interactive mode by default to avoid EOF-driven exits. Set `BRIDGE_MODE=cli` only for interactive debugging.
+- `bridge` runs in `grpc` mode by default (serves mail plus the gRPC API the metrics exporter scrapes). Use `BRIDGE_MODE=noninteractive` for a leaner run without metrics, or `BRIDGE_MODE=cli` only for interactive debugging.
 - `gpg-agent` service handles Alpine stale socket/lock cleanup before launch and during service finish.
 - Bridge may log DBus keychain warnings in headless environments without `dbus-launch`; this is expected when not using a desktop keyring.
 - The bootstrap GPG key is generated with `%no-protection` and no passphrase. Protect mounted `/home/bridge` volumes and backups accordingly.
