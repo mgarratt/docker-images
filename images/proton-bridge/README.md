@@ -101,8 +101,8 @@ This image distributes GPL-licensed Proton Bridge binaries built from source. Co
 
 Pinned upstream source for this image definition (`images/proton-bridge/image.toml`):
 
-- `ENV_PROTONMAIL_BRIDGE_VERSION=v3.22.0`
-- `ENV_PROTONMAIL_BRIDGE_COMMIT=87bba395d0f93301ac318d9b5cffde3312bbe13e`
+- `ENV_PROTONMAIL_BRIDGE_VERSION=v3.25.0`
+- `ENV_PROTONMAIL_BRIDGE_COMMIT=f1f599e97167265cb0d10ad3d169269c324d9cc7`
 
 For published images, the wrapper source commit is recorded in image label:
 
