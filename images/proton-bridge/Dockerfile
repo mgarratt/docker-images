@@ -49,6 +49,15 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 go build -o /proton-bridge-exporter .
 
+# Build the STARTTLS-terminating SMTP relay that fronts services/smtp-relay.
+FROM golang:alpine3.24 AS smtp-relay
+WORKDIR /smtp-relay
+COPY smtp-relay/go.mod ./
+COPY smtp-relay/ ./
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 go build -o /proton-bridge-smtp-relay .
+
 # Working stage image
 FROM alpine:3.24
 
@@ -66,12 +75,20 @@ ARG ENV_BRIDGE_HOST=127.0.0.1
 ARG ENV_CONTAINER_SMTP_PORT=1026
 ARG ENV_CONTAINER_IMAP_PORT=1144
 ARG ENV_CONTAINER_METRICS_PORT=9154
+# The SMTP relay presents this certificate/key for STARTTLS on
+# CONTAINER_SMTP_PORT. Defaults match the two keys of a Kubernetes TLS-type
+# Secret, so a chart can mount that secret straight at the directory below
+# without overriding either variable.
+ARG ENV_CONTAINER_SMTP_TLS_CERT_FILE=/etc/proton-bridge/tls/tls.crt
+ARG ENV_CONTAINER_SMTP_TLS_KEY_FILE=/etc/proton-bridge/tls/tls.key
 ENV PROTON_BRIDGE_SMTP_PORT=$ENV_BRIDGE_SMTP_PORT \
     PROTON_BRIDGE_IMAP_PORT=$ENV_BRIDGE_IMAP_PORT \
     PROTON_BRIDGE_HOST=$ENV_BRIDGE_HOST \
     CONTAINER_SMTP_PORT=$ENV_CONTAINER_SMTP_PORT \
     CONTAINER_IMAP_PORT=$ENV_CONTAINER_IMAP_PORT \
     CONTAINER_METRICS_PORT=$ENV_CONTAINER_METRICS_PORT \
+    CONTAINER_SMTP_TLS_CERT_FILE=$ENV_CONTAINER_SMTP_TLS_CERT_FILE \
+    CONTAINER_SMTP_TLS_KEY_FILE=$ENV_CONTAINER_SMTP_TLS_KEY_FILE \
     ENV_TARGET_PLATFORM=$TARGETPLATFORM
 
 # Install dependencies
@@ -101,6 +118,7 @@ RUN set -eux; \
 WORKDIR /usr/bin/
 COPY --from=build /build/proton-bridge/bridge /build/proton-bridge/proton-bridge /build/proton-bridge/vault-editor /usr/bin/
 COPY --from=exporter /proton-bridge-exporter /usr/bin/proton-bridge-exporter
+COPY --from=smtp-relay /proton-bridge-smtp-relay /usr/bin/proton-bridge-smtp-relay
 
 # Install needed scripts and files
 WORKDIR /app/
@@ -114,8 +132,8 @@ COPY --chmod=0755 services/bridge/run /app/services/bridge/run
 COPY --chmod=0755 services/bridge/finish /app/services/bridge/finish
 COPY --chmod=0755 services/gpg-agent/run /app/services/gpg-agent/run
 COPY --chmod=0755 services/gpg-agent/finish /app/services/gpg-agent/finish
-COPY --chmod=0755 services/socat-smtp/run /app/services/socat-smtp/run
-COPY --chmod=0755 services/socat-smtp/finish /app/services/socat-smtp/finish
+COPY --chmod=0755 services/smtp-relay/run /app/services/smtp-relay/run
+COPY --chmod=0755 services/smtp-relay/finish /app/services/smtp-relay/finish
 COPY --chmod=0755 services/socat-imap/run /app/services/socat-imap/run
 COPY --chmod=0755 services/socat-imap/finish /app/services/socat-imap/finish
 COPY --chmod=0755 services/exporter/run /app/services/exporter/run

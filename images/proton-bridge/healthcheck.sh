@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 set -eu
 
-for service in bridge gpg-agent socat-smtp socat-imap exporter; do
+for service in bridge gpg-agent smtp-relay socat-imap exporter; do
   s6-svstat "/app/services/${service}" | grep -q '^up '
 done
 
