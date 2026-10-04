@@ -1,0 +1,40 @@
+# How this repository's merged code becomes live (schema in mgarratt/skills
+# ADR 0023). This file describes publishing only: the publish workflow
+# (.github/workflows/publish.yml) pushes images to GHCR on every push to main.
+
+# GitHub Actions starts the workflow by itself, so there is nothing to run. A
+# full run can take about 24 minutes (the slowest image build), far beyond the
+# 5-minute step cap, so `verify` does not wait for it to finish. For up to
+# ~4.5 minutes it polls the publish workflow's run for the merged sha and:
+#   - exits 0 as soon as the run has succeeded;
+#   - exits 1 as soon as the run has failed or been cancelled;
+#   - exits 0 if the run exists and is still going when the time is up;
+#   - exits 1 if no run for the sha ever appears.
+# So it proves the workflow started and had not failed (lint included) within
+# the window. It does NOT prove the images were built or pushed: a build
+# failing after the window is not caught here.
+# Which paths publish: ci_matrix.py rebuilds every image when mise.toml or
+# scripts/** change, and a single image when its images/<image>/ changes.
+[[deploy]]
+paths  = ["images/**", "scripts/**", "mise.toml", ".github/workflows/publish.yml"]
+kind   = "reconciles"
+verify = '''
+sha=$(git rev-parse HEAD)
+seen=
+for _ in $(seq 27); do
+  run=$(gh run list --workflow publish.yml --commit "$sha" --limit 1 --json status,conclusion --jq '.[0] | select(. != null) | "\(.status) \(.conclusion)"') || run=
+  case "$run" in
+    "completed success"*) exit 0 ;;
+    completed*) exit 1 ;;
+    ?*) seen=1 ;;
+  esac
+  sleep 10
+done
+[ -n "$seen" ]
+'''
+
+# Everything else here (docs, licences, dependency-update config, this file)
+# publishes nothing: there is nothing to do once it merges.
+[[deploy]]
+paths = ["**"]
+kind  = "none"
