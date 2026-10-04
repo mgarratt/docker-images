@@ -174,5 +174,5 @@ VOLUME /home/bridge
 HEALTHCHECK --interval=30s --timeout=5s --start-period=45s --retries=3 \
   CMD ["/app/healthcheck.sh"]
 
-USER bridge:bridge
+USER 1000:1000
 ENTRYPOINT ["/app/entrypoint.sh"]

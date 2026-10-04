@@ -13,7 +13,7 @@ FROM ghcr.io/actions/actions-runner:${RUNNER_VERSION}
 
 ARG COMPOSE_VERSION=v2.32.4
 
-USER root
+USER 0:0
 
 # hadolint ignore=DL3008
 RUN apt-get update \
@@ -34,4 +34,4 @@ RUN mkdir -p /usr/local/lib/docker/cli-plugins \
       -o /usr/local/lib/docker/cli-plugins/docker-compose \
  && chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
 
-USER runner
+USER 1001
