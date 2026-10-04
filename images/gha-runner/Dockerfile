@@ -34,4 +34,4 @@ RUN mkdir -p /usr/local/lib/docker/cli-plugins \
       -o /usr/local/lib/docker/cli-plugins/docker-compose \
  && chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
 
-USER 1001:1001
+USER 1001
