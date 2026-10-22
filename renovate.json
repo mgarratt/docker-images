@@ -2,5 +2,26 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "config:recommended"
+  ],
+  "customManagers": [
+    {
+      "description": "gha-runner: ARC disables runner self-update and GitHub rejects stale runner versions (exit 7 wedges the scale set), so track actions/runner releases",
+      "customType": "regex",
+      "managerFilePatterns": ["/^images/gha-runner/(image\\.toml|Dockerfile)$/"],
+      "matchStrings": [
+        "RUNNER_VERSION = \"(?<currentValue>[^\"]+)\"",
+        "ARG RUNNER_VERSION=(?<currentValue>\\S+)"
+      ],
+      "depNameTemplate": "actions/runner",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.+)$"
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "Automerge runner bumps: an unmerged one breaks the cluster's runners within weeks",
+      "matchPackageNames": ["actions/runner"],
+      "automerge": true
+    }
   ]
 }

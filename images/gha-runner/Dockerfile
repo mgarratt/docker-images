@@ -8,7 +8,7 @@
 #   docker compose plugin  -> the `docker compose` subcommand (compose smoke tests)
 #
 # arm64-only: the cluster nodes (and therefore the runners) are aarch64.
-ARG RUNNER_VERSION=2.335.1
+ARG RUNNER_VERSION=2.338.0
 FROM ghcr.io/actions/actions-runner:${RUNNER_VERSION}
 
 ARG COMPOSE_VERSION=v2.32.4

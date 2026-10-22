@@ -3,4 +3,4 @@ image = "gha-runner"
 # to schedule an amd64 variant on. The matrix passes these per-image platforms to
 # buildx.
 platforms = ["linux/arm64"]
-build_args = { RUNNER_VERSION = "2.335.1", COMPOSE_VERSION = "v2.32.4" }
+build_args = { RUNNER_VERSION = "2.338.0", COMPOSE_VERSION = "v2.32.4" }
