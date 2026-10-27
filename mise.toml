@@ -2,5 +2,5 @@
 node = "lts"
 python = "3.12"
 shellcheck = "0.11.0"
-hadolint = "2.14.0"
+hadolint = "2.15.1"
 jq = "1.8.2"
