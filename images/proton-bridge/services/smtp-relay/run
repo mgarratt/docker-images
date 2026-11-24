@@ -5,4 +5,4 @@ state_dir="/tmp/proton-bridge-s6"
 mkdir -p "${state_dir}"
 date +%s > "${state_dir}/smtp-relay.start"
 
-exec /usr/bin/proton-bridge-smtp-relay
+exec /usr/bin/proton-bridge-starttls-relay smtp

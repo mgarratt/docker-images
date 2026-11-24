@@ -8,8 +8,8 @@ The container runs these long-lived services under `s6`:
 
 - `bridge` (`/usr/bin/bridge --grpc` by default; serves mail and the gRPC machine API)
 - `gpg-agent` (launched and monitored via `gpgconf`)
-- `smtp-relay` (a small STARTTLS-terminating SMTP relay on `${CONTAINER_SMTP_PORT}`; see [SMTP Relay](#smtp-relay) below)
-- IMAP forwarder (`socat` on `${CONTAINER_IMAP_PORT}` -> `${PROTON_BRIDGE_HOST}:${PROTON_BRIDGE_IMAP_PORT}`, a plain TCP forward)
+- `smtp-relay` (a small STARTTLS-terminating SMTP relay on `${CONTAINER_SMTP_PORT}`; see [STARTTLS Relay](#starttls-relay) below)
+- `imap-relay` (the same relay for IMAP on `${CONTAINER_IMAP_PORT}`)
 - `exporter` (Prometheus metrics on `${CONTAINER_METRICS_PORT}`, scraping the bridge gRPC API)
 
 Bootstrap-only initialization in `entrypoint.sh`:
@@ -29,8 +29,10 @@ Required:
 - `CONTAINER_METRICS_PORT`
 - `CONTAINER_SMTP_TLS_CERT_FILE` (default `/etc/proton-bridge/tls/tls.crt`) — certificate the `smtp-relay` service presents for STARTTLS on `CONTAINER_SMTP_PORT`
 - `CONTAINER_SMTP_TLS_KEY_FILE` (default `/etc/proton-bridge/tls/tls.key`) — matching private key
+- `CONTAINER_IMAP_TLS_CERT_FILE` (default `/etc/proton-bridge/tls/tls.crt`) — certificate the `imap-relay` service presents for STARTTLS on `CONTAINER_IMAP_PORT`
+- `CONTAINER_IMAP_TLS_KEY_FILE` (default `/etc/proton-bridge/tls/tls.key`) — matching private key
 
-The defaults for the last two match the two keys of a Kubernetes TLS-type
+The defaults for the TLS files match the two keys of a Kubernetes TLS-type
 `Secret` (`tls.crt`/`tls.key`), so mounting such a secret at
 `/etc/proton-bridge/tls/` needs no env var overrides.
 
@@ -42,8 +44,7 @@ Optional runtime tuning:
 - `BRIDGE_GPG_AGENT_WAIT_SECONDS` (default `30`)
 - `GPG_AGENT_LAUNCH_MAX_FAILURES` (default `10`)
 - `BRIDGE_MODE` (`grpc`, `noninteractive`, or `cli`, default `grpc`)
-- `SOCAT_DEBUG` (`true` enables verbose socat logs on the IMAP forwarder, default `false`)
-- `SMTP_RELAY_DEBUG` (`true` enables verbose per-connection logging on the SMTP relay, default `false`)
+- `SMTP_RELAY_DEBUG` / `IMAP_RELAY_DEBUG` (`true` enables verbose per-connection logging on that relay, default `false`)
 
 ## Metrics
 
@@ -79,8 +80,8 @@ docker run --rm -it \
   ghcr.io/mgarratt/docker-images/proton-bridge:latest
 ```
 
-The `smtp-relay` service needs a certificate and key at
-`CONTAINER_SMTP_TLS_CERT_FILE`/`CONTAINER_SMTP_TLS_KEY_FILE` (default
+The `smtp-relay` and `imap-relay` services need a certificate and key at
+`CONTAINER_{SMTP,IMAP}_TLS_CERT_FILE`/`CONTAINER_{SMTP,IMAP}_TLS_KEY_FILE` (default
 `/etc/proton-bridge/tls/tls.crt`/`tls.key`) to start; the mount above supplies
 them.
 
@@ -102,30 +103,37 @@ After login is complete, restart the container in the default `grpc` mode for no
 - Bridge may log DBus keychain warnings in headless environments without `dbus-launch`; this is expected when not using a desktop keyring.
 - The bootstrap GPG key is generated with `%no-protection` and no passphrase. Protect mounted `/home/bridge` volumes and backups accordingly.
 
-## SMTP Relay
+## STARTTLS Relay
 
-Bridge binds SMTP on loopback and presents a certificate for `CN=127.0.0.1`,
+Bridge binds SMTP and IMAP on loopback and presents a certificate for `CN=127.0.0.1`,
 `SAN IP:127.0.0.1` — correct for a same-machine client, but not verifiable by
 any client that reaches it across a pod boundary. Rather than forward that
 certificate unchanged (as a plain TCP proxy like `socat` would), the
-`smtp-relay` service terminates TLS at the container boundary:
+`smtp-relay` and `imap-relay` services (one binary,
+`proton-bridge-starttls-relay smtp|imap`) terminate TLS at the container
+boundary. For each protocol:
 
-- it listens on `CONTAINER_SMTP_PORT` and offers **STARTTLS**, presenting the
-  certificate/key at `CONTAINER_SMTP_TLS_CERT_FILE`/`CONTAINER_SMTP_TLS_KEY_FILE`;
+- it listens on `CONTAINER_{SMTP,IMAP}_PORT` and offers **STARTTLS**, presenting
+  the certificate/key at `CONTAINER_{SMTP,IMAP}_TLS_CERT_FILE`/`_KEY_FILE`;
 - it then negotiates **STARTTLS onward** to Bridge at
-  `${PROTON_BRIDGE_HOST}:${PROTON_BRIDGE_SMTP_PORT}` — exactly what a client
+  `${PROTON_BRIDGE_HOST}:${PROTON_BRIDGE_{SMTP,IMAP}_PORT}` — exactly what a client
   talking to Bridge directly does today, so nothing assumes Bridge accepts
   plaintext;
 - once both legs are TLS it pipes bytes verbatim in both directions. It never
-  parses `AUTH`, `MAIL`, `RCPT` or `DATA`, so SMTP AUTH passes through exactly
-  as Bridge issued it — the relay authenticates nothing of its own;
+  parses SMTP `AUTH`/`MAIL`/`RCPT`/`DATA` or any IMAP command after
+  `STARTTLS`, so credentials pass through exactly as Bridge issued them — the
+  relay authenticates nothing of its own;
 - the inner (Bridge-facing) hop skips certificate verification: it is loopback
   inside one pod, to a certificate whose IP SAN genuinely matches;
-- a client that never issues `STARTTLS` is refused (`530`), not silently
-  downgraded to plaintext.
+- a client that never issues `STARTTLS` is refused (SMTP `530`; IMAP
+  advertises `LOGINDISABLED` and answers `LOGIN`/`AUTHENTICATE` with `NO`), not
+  silently downgraded to plaintext.
 
-It is a small (~200 line), dependency-free Go program under
-[`smtp-relay/`](smtp-relay/main.go), built and run the same way as the
+The certificate is read once at start-up; a renewed certificate is picked up
+when the container restarts (e.g. via Reloader on the mounted Secret).
+
+It is a small (~300 line), dependency-free Go program under
+[`starttls-relay/`](starttls-relay/main.go), built and run the same way as the
 [`exporter`](exporter/README.md). `decke/smtprelay` was evaluated first, as the
 framing named it as an unverified candidate, and rejected: it authenticates
 inbound connections against its own local (bcrypt-hashed) user file and logs
@@ -138,10 +146,10 @@ mismatch and needed no third-party dependency at all.
 
 The container `HEALTHCHECK` script validates:
 
-- `s6` supervision state for `bridge`, `gpg-agent`, `smtp-relay`, and `socat-imap`
+- `s6` supervision state for `bridge`, `gpg-agent`, `smtp-relay`, `imap-relay`, and `exporter`
 - `gpg-agent` control socket responsiveness (`gpg-connect-agent /bye`)
 - listening state for SMTP/IMAP container ports
-- lightweight SMTP and IMAP banner-level handshake probes on local forwarded ports
+- lightweight SMTP and IMAP banner-level handshake probes on the relay ports, plus an IMAP banner probe on Bridge's own loopback port
 
 ## Build Supply Chain
 
