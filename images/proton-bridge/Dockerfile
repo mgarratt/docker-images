@@ -175,7 +175,7 @@ LABEL org.opencontainers.image.source="$ENV_IMAGE_SOURCE" \
 # Volume to save pass and bridge configurations/data
 VOLUME /home/bridge
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=45s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=15s --start-period=45s --retries=3 \
   CMD ["/app/healthcheck.sh"]
 
 USER 1000:1000
