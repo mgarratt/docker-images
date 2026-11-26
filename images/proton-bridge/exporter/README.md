@@ -40,22 +40,24 @@ and `BRIDGE_GRPC_CONFIG` (override the config path).
 
 ## gRPC stubs (`bridgepb/`) and upstream coupling
 
-`bridgepb/bridge.pb.go` and `bridgepb/bridge_grpc.pb.go` are **vendored verbatim**
-from `ProtonMail/proton-bridge` (`internal/frontend/grpc/`, GPL-3.0), with only
-the Go `package` declaration renamed to `bridgepb`. `bridgepb/bridge.proto` is
-kept alongside for provenance.
+The Docker build overwrites `bridgepb/bridge.pb.go` and `bridgepb/bridge_grpc.pb.go`
+with the copies in `internal/frontend/grpc/` of the Bridge checkout pinned in
+`../image.toml` (GPL-3.0), renaming only the Go `package` to `bridgepb`, so the
+image always uses the stubs of the Bridge version it builds.
 
-The gRPC API is Bridge's internal GUI contract, so it can change between
-releases. **On each upstream version bump, re-vendor these files** from the
-matching tag:
+The committed copies exist only so Go tooling outside Docker resolves the
+module. In particular, Renovate runs `go get` across it when it bumps
+`go.mod`. They may lag the pinned version; the build never uses them.
+
+The gRPC API is Bridge's internal GUI contract and can change between releases;
+if it does, the exporter fails to compile and the image build fails. To refresh
+the committed copies to the pinned version:
 
 ```sh
-tag=v3.25.0
-for f in bridge.pb.go bridge_grpc.pb.go bridge.proto; do
+tag="$(sed -n 's/.*ENV_PROTONMAIL_BRIDGE_VERSION = "\([^"]*\)".*/\1/p' ../image.toml)"
+for f in bridge.pb.go bridge_grpc.pb.go; do
   curl -fsSL "https://raw.githubusercontent.com/ProtonMail/proton-bridge/${tag}/internal/frontend/grpc/${f}" \
     -o "bridgepb/${f}"
 done
-sed -i 's/^package grpc$/package bridgepb/' bridgepb/bridge.pb.go bridgepb/bridge_grpc.pb.go
+sed -i 's/^package grpc$/package bridgepb/' bridgepb/*.pb.go
 ```
-
-Then `go build ./...` and adjust `main.go` if the schema changed.
