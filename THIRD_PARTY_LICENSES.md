@@ -18,7 +18,7 @@ Relevant local files:
 
 - `images/proton-bridge/LICENSE` (full GPL-3.0 license text)
 - `images/proton-bridge/NOTICE` (attribution and provenance)
-- `images/proton-bridge/exporter/README.md` (exporter provenance and stub regeneration)
+- `images/proton-bridge/exporter/README.md` (exporter provenance and how its stubs are sourced)
 
 Upstream sources:
 
