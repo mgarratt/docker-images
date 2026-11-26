@@ -10,7 +10,8 @@ The `proton-bridge` image distributes binaries built from:
 
 The bundled `proton-bridge-exporter` additionally compiles in the Bridge gRPC client
 stubs (GPL-3.0, copied at build time from the pinned `ProtonMail/proton-bridge`
-checkout with only the Go package name changed) and links Go
+checkout with only the Go package name changed; verbatim copies are also committed at
+`images/proton-bridge/exporter/bridgepb/` for tooling) and links Go
 libraries under their own permissive licences (gRPC and Prometheus client
 under Apache-2.0; `google.golang.org/protobuf` under BSD-3-Clause).
 
