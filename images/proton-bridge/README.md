@@ -54,8 +54,8 @@ dropped-auth counters scraped from the bridge gRPC API. This requires the
 default `BRIDGE_MODE=grpc`; under `noninteractive`/`cli` the gRPC API is absent
 and the exporter reports `proton_bridge_up 0`.
 
-See [`exporter/README.md`](exporter/README.md) for the full metric list and the
-stub-regeneration step required on each upstream version bump.
+See [`exporter/README.md`](exporter/README.md) for the full metric list and how
+its gRPC stubs track the pinned Bridge version.
 
 ## Login
 
@@ -168,8 +168,8 @@ This image distributes GPL-licensed Proton Bridge binaries built from source. Co
 
 Pinned upstream source for this image definition (`images/proton-bridge/image.toml`):
 
-- `ENV_PROTONMAIL_BRIDGE_VERSION=v3.25.0`
-- `ENV_PROTONMAIL_BRIDGE_COMMIT=f1f599e97167265cb0d10ad3d169269c324d9cc7`
+- `ENV_PROTONMAIL_BRIDGE_VERSION=v3.27.2`
+- `ENV_PROTONMAIL_BRIDGE_COMMIT=3e9f85aa3c676a573b64b1d90829970ded26dbfa`
 
 For published images, the wrapper source commit is recorded in image label:
 

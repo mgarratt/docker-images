@@ -45,8 +45,11 @@ WORKDIR /exporter
 COPY exporter/go.mod exporter/go.sum ./
 RUN --mount=type=cache,target=/go/pkg/mod go mod download
 COPY exporter/ ./
+# gRPC stubs come from the pinned Bridge checkout so they always match its API.
+COPY --from=build /build/proton-bridge/internal/frontend/grpc/bridge.pb.go /build/proton-bridge/internal/frontend/grpc/bridge_grpc.pb.go ./bridgepb/
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
+    sed -i 's/^package grpc$/package bridgepb/' bridgepb/*.pb.go && \
     CGO_ENABLED=0 go build -o /proton-bridge-exporter .
 
 # Build the STARTTLS-terminating relay that fronts services/smtp-relay and

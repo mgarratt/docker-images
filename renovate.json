@@ -15,6 +15,25 @@
       "depNameTemplate": "actions/runner",
       "datasourceTemplate": "github-releases",
       "extractVersionTemplate": "^v(?<version>.+)$"
+    },
+    {
+      "description": "proton-bridge: track Bridge tags and their commit SHA (the Dockerfile verifies the cloned tag resolves to it)",
+      "customType": "regex",
+      "managerFilePatterns": ["/^images/proton-bridge/image\\.toml$/"],
+      "matchStrings": [
+        "ENV_PROTONMAIL_BRIDGE_VERSION = \"(?<currentValue>v[^\"]+)\", ENV_PROTONMAIL_BRIDGE_COMMIT = \"(?<currentDigest>[0-9a-f]{40})\""
+      ],
+      "depNameTemplate": "ProtonMail/proton-bridge",
+      "datasourceTemplate": "github-tags"
+    },
+    {
+      "description": "proton-bridge: keep the published image version (no 'v' prefix) in step with the build arg",
+      "customType": "regex",
+      "managerFilePatterns": ["/^images/proton-bridge/image\\.toml$/"],
+      "matchStrings": ["\\nversion = \"(?<currentValue>[^\"]+)\""],
+      "depNameTemplate": "ProtonMail/proton-bridge",
+      "datasourceTemplate": "github-tags",
+      "extractVersionTemplate": "^v(?<version>.+)$"
     }
   ],
   "packageRules": [
@@ -22,6 +41,11 @@
       "description": "Automerge runner bumps: an unmerged one breaks the cluster's runners within weeks",
       "matchPackageNames": ["actions/runner"],
       "automerge": true
+    },
+    {
+      "description": "Not automerged: Bridge bumps can change the gRPC API the exporter relies on, so review the PR build. Grouped so version and build arg land in one PR",
+      "matchPackageNames": ["ProtonMail/proton-bridge"],
+      "groupName": "proton-bridge"
     }
   ]
 }
